@@ -8,14 +8,44 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 
+# Set up Chrome options
+chrome_options = Options()
+chrome_options.add_argument("--disable-extensions")
+# replace username with your
+# chrome_options.add_argument("--user-data-dir=/home/username/.config/google-chrome")  # Linux
+chrome_options.add_argument("--user-data-dir=C:\\Users\\Prashanna\\AppData\\Local\\Google\\Chrome\\User Data")  # Windows
+
+# Add the profile directory (if using a specific profile)
+chrome_options.add_argument("--profile-directory=Default")
+# Replace "Default" with your profile name if needed or if you have multiple profiles write(Profile 1, Profile 2)
+# look for profiles in path:C:\Users\Prashanna\AppData\Local\Google\Chrome\User Data
 # Initialize WebDriver
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 driver.maximize_window()
 time.sleep(5)  # Shortened wait time for browser to load
 
-# Open WhatsApp Web
-driver.get("https://web.whatsapp.com/")
+# # Switch to the new tab
+def is_whatsapp_open(driver):
+    for handle in driver.window_handles:
+        driver.switch_to.window(handle)
+        if "web.whatsapp.com" in driver.current_url:
+            print("WhatsApp Web is already open in a tab.")
+            return True
+    return False
+
+# Check if WhatsApp Web is already open
+if not is_whatsapp_open(driver):
+    print("WhatsApp Web is not open. Opening a new tab...")
+    driver.execute_script("window.open('');")  # Open a new blank tab
+    driver.switch_to.window(driver.window_handles[-1])  # Switch to the new tab
+    driver.get("https://web.whatsapp.com")  # Open WhatsApp Web in the new tab
+    print("Waiting for WhatsApp Web to load...")
+    time.sleep(10)  # Adjust the delay as needed
+else:
+    print("Switching to the existing WhatsApp Web tab.")
+
 print("Scan the QR Code and press Enter after logging in.")
 input("Press Enter after scanning QR Code and logging in: ")
 
@@ -88,7 +118,6 @@ def sendMsg(phone_number, message):
         print(f"Failed to send message to {phone_number}: {e}")
         log_failed_contact(phone_number)
 
-
 # Function to send images or videos
 def send_media(phone_number, file_path,caption, is_video=False):
     if is_already_sent(phone_number, file_path):
@@ -96,6 +125,7 @@ def send_media(phone_number, file_path,caption, is_video=False):
         return
     print(f"Sending {'video' if is_video else 'image'} to {phone_number}...")
     try:
+
         driver.get(f"https://web.whatsapp.com/send?phone={phone_number}")
 
         # Wait for the attachment button to load
@@ -109,7 +139,7 @@ def send_media(phone_number, file_path,caption, is_video=False):
                 (By.XPATH, '//input[@accept="image/*,video/mp4,video/3gpp,video/quicktime"]'))
         )
         file_input.send_keys(file_path)
-        time.sleep(5)
+        time.sleep(10) #delay for large files
         # Wait for the caption input box to load
         caption_box = WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@aria-label="Add a caption"]'))
@@ -136,7 +166,7 @@ contacts = [
 message = "Hello! This is an automated message sent using Selenium."
 # Path to image or video file
 image_path = "C:/Users/Prashanna/OneDrive/Pictures/C Module/classwork.jpg"
-video_path = "C:/Users/Public/hiii.mp4"
+video_path = "C:/Users/Prashanna/Videos/trip.mp4"
 image_caption_message="this is image caption message"
 video_caption_message="this is video caption message"
 
